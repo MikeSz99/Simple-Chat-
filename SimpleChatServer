@@ -1,0 +1,66 @@
+import java.net.*;
+import java.io.*;
+import java.util.*;
+
+public class SimpleChatServer {
+    ArrayList outputStreams;
+    public static void main(String[] args){
+       new SimpleChatServer().begin();
+    }
+    public class ClientHandling implements Runnable{
+        BufferedReader reader;
+        Socket sckt;
+
+        public ClientHandling(Socket clientSocket){
+            try{
+                sckt = clientSocket;
+                InputStreamReader isReader = new InputStreamReader(sckt.getInputStream());
+                reader = new BufferedReader(isReader);
+
+            }catch(Exception e){e.printStackTrace();}
+        }
+
+        public void run(){
+            String mess;
+            try{
+                 while((mess = reader.readLine()) != null){
+                     System.out.println("Received: " + mess);
+                     sendToEveryone(mess);
+                 }
+            }catch(Exception a){a.printStackTrace();}
+
+        }
+    }
+
+    public void begin(){
+        outputStreams = new ArrayList<>();
+        try{
+            ServerSocket sSckt = new ServerSocket(4999);
+
+            while(true){
+                Socket clientSckt = sSckt.accept();
+                PrintWriter writerr = new PrintWriter(clientSckt.getOutputStream());
+               outputStreams.add(writerr);
+
+                Thread t = new Thread(new ClientHandling(clientSckt));
+                t.start();
+                System.out.println("Connection started");
+
+
+            }
+        }catch(Exception y){y.printStackTrace();}
+    }
+    public void sendToEveryone(String message){
+        Iterator it = outputStreams.iterator();
+        while(it.hasNext()){
+            try{
+                PrintWriter writerr = (PrintWriter) it.next();
+                writerr.println(message);
+                writerr.flush();
+
+
+            }catch(Exception x){x.printStackTrace();}
+        }
+
+    }
+}
