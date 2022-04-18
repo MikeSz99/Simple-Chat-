@@ -1,0 +1,83 @@
+import java.awt.*;
+import java.awt.event.ActionListener;
+import java.net.*;
+import java.io.*;
+import javax.swing.*;
+import java.awt.event.*;
+public class SimpleChatClient {
+    JTextField text;
+    JTextArea received;
+    BufferedReader reader;
+    PrintWriter writer;
+    Socket sckt;
+
+    public void frame(){
+        JFrame frame = new JFrame("Simple Chat Client");
+        JPanel mainPanel = new JPanel();
+
+        received = new JTextArea(15,50);
+        received.setLineWrap(true);
+        received.setWrapStyleWord(true);
+        received.setEditable(false);
+
+        JScrollPane scrolling =  new JScrollPane(received);
+        scrolling.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+        scrolling.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
+        text = new JTextField(20);
+        text.setText("");
+        text.setFocusable(true);
+
+        JButton sendButton = new JButton("Send");
+        sendButton.addActionListener(new SendButtonListener());
+
+        mainPanel.add(scrolling);
+        mainPanel.add(text);
+        mainPanel.add(sendButton);
+        configureCommunication();
+
+        Thread receiverThread = new Thread(new InformationReceiver());
+        receiverThread.start();
+
+        frame.getContentPane().add(BorderLayout.CENTER, mainPanel);
+        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        frame.setSize(600, 600);
+        frame.setVisible(true);
+    }
+    private void configureCommunication(){
+        try{
+            sckt = new Socket("127.0.0.1", 4999);
+            InputStreamReader streamReader = new InputStreamReader(sckt.getInputStream());
+            reader = new BufferedReader(streamReader);
+            writer = new PrintWriter(sckt.getOutputStream());
+            System.out.println("Site is ready to use");
+
+        }catch(Exception e){e.printStackTrace();}
+    }
+
+    public class SendButtonListener implements ActionListener{
+        public void actionPerformed(ActionEvent e){
+         try{
+             writer.println(text.getText());
+             writer.flush();
+         }catch(Exception a){a.printStackTrace();}
+        }
+    }
+    
+    public static void main(String[] args) throws IOException{
+        SimpleChatClient a = new SimpleChatClient();
+        a.frame();
+    }
+    
+    public class InformationReceiver implements Runnable{
+        public void run(){
+            String mess;
+            try{
+               while((mess = reader.readLine()) != null){
+                   System.out.println("Read: " + mess);
+                   received.append(mess + "\n");
+               }
+            }catch(Exception a){a.printStackTrace();}
+        }
+    }
+   }
